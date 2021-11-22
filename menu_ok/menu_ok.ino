@@ -12,6 +12,9 @@ int sensorPin = A0;    // select the input pin for the potentiometer
 int ledPin = 27;      // select the pin for the LED
 int sensorValue = 0;  // variable to store the value coming from the sensor
 int previousSensorValue =0;
+int menu = 0;
+int light = 0;
+
 unsigned int lastchecked;
 unsigned int temps;
 unsigned long dif = 0;
@@ -52,6 +55,7 @@ Adafruit_SH1107 display = Adafruit_SH1107(64, 128, &Wire);
 void setup() 
 {
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_12,1); //1 = High, 0 = Low
+  
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
   pinMode(ledPin, OUTPUT);
   Serial.begin(115200);
@@ -86,6 +90,7 @@ void setup()
   // LED builtin est le LED rouge de la board
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(GPIO_NUM_12, INPUT_PULLUP);
+  pinMode(GPIO_NUM_25, INPUT_PULLUP);
 
 
 
@@ -123,6 +128,8 @@ void displayMenu() {
   /* Afficher le menu comme demandé dans le projet
    * On a changé les textes pour qu'ils s'affichent dans le screen
   */
+    enable_sleep();
+    menu = 1;
     display.clearDisplay();
     display.display();
     display.setTextSize(0.5);
@@ -137,15 +144,18 @@ void displayMenu() {
     display.println("4 toggle pot action");
     display.println("5 sleep");
     int selection = 0;
-    while(1) {
+    while(menu) {
+
       
       if(!digitalRead(BUTTON_C)){
+        previousMillis = currentMillis;
         delay(250);
         selection++;
         display.clearDisplay();
         display.display();
       }
       if(!digitalRead(BUTTON_A)){
+        previousMillis = currentMillis;
         delay(250);
         selection--;
         display.clearDisplay();
@@ -158,6 +168,7 @@ void displayMenu() {
         break;
         
         case 1:
+        enable_sleep();
         Serial.println("1");
        
         display.setTextSize(0.5);
@@ -174,9 +185,16 @@ void displayMenu() {
         display.println("4 toggle pot action");
         display.println("5 sleep");
         display.display();
+        if(!digitalRead(GPIO_NUM_25)) {
+          previousMillis = currentMillis;
+          menu = 0;
+          temperature_display();
+          }
+        
         break;
 
         case 2:
+        enable_sleep();
         Serial.println("2");
         
         display.setTextSize(0.5);
@@ -193,9 +211,15 @@ void displayMenu() {
         display.println("4 toggle pot action");
         display.println("5 sleep");
         display.display();
+        if(!digitalRead(GPIO_NUM_25)) {
+          previousMillis = currentMillis;
+          menu = 0;
+          temperature_FC();
+          }
         break;
 
         case 3:
+        enable_sleep();
         Serial.println("3");
         display.setTextSize(0.5);
         display.setTextColor(SH110X_WHITE);
@@ -211,9 +235,15 @@ void displayMenu() {
         display.println("4 toggle pot action");
         display.println("5 sleep");
         display.display();
+        if(!digitalRead(GPIO_NUM_25)) {
+          previousMillis = currentMillis;
+          menu = 0;
+          toogle_ligth();
+          }
         break;
 
         case 4:
+        enable_sleep();
         Serial.println("4");
         
         display.setTextSize(0.5);
@@ -230,9 +260,15 @@ void displayMenu() {
         display.setTextColor(SH110X_WHITE, SH110X_BLACK);
         display.println("5 sleep");
         display.display();
+        if(!digitalRead(GPIO_NUM_25)) {
+          previousMillis = currentMillis;
+          menu = 0;
+          toogle_pot();
+          }
         break;
 
         case 5:
+        enable_sleep();
         
         Serial.println("5");
         display.setTextSize(0.5);
@@ -249,6 +285,11 @@ void displayMenu() {
         display.println("5 sleep");
         display.setTextColor(SH110X_WHITE, SH110X_BLACK);
         display.display();
+        if(!digitalRead(GPIO_NUM_25)) {
+          previousMillis = currentMillis;
+          menu = 0;
+          toogle_sleep();
+        }
         break;
 
         default:
@@ -261,15 +302,103 @@ void displayMenu() {
     }
 }
 
+void temperature_display(){
+  Serial.println("Option 1 selected");
+  delay(100);
+  display.clearDisplay();
+  display.display();
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.println("Press ok to go back");
+  display.println("Showing temp and humidity");
+  display.display();
+  while(1){
+    back();
+  }       
+}
+
+void temperature_FC(){
+  Serial.println("Option 2 selected");
+  delay(100);
+  display.clearDisplay();
+  display.display();
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.println("Press ok to go back");
+  display.println("Toogle temp F/C");
+  display.display();
+  while(1){
+    back();
+  }       
+}
+
+void toogle_ligth(){
+  Serial.println("Option 3 selected");
+  delay(100);
+  led();
+  while(1){
+    back();
+  }       
+}
+
+
+void toogle_pot(){
+  Serial.println("Option 4 selected");
+  delay(100);
+  display.clearDisplay();
+  display.display();
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.println("Press ok to go back");
+  display.println("Toogle pot");
+  display.display();
+  while(1){
+    back();
+  }       
+}
+
+
+void toogle_sleep(){
+  Serial.println("Option 5 selected");
+  delay(100);
+  display.clearDisplay();
+  display.display();
+  display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+  display.setCursor(0,0);
+  display.println("Going to sleep");
+  display.display();
+  leds[0] = CRGB(0, 0, 0);
+  FastLED.clear();
+  delay(50);
+  FastLED.show();
+  delay(1000);
+  display.print("Z");
+  display.display();
+  delay(1000);
+  display.print("Z");  
+  display.display();
+  delay(1000);
+  display.print("Z");
+  display.display();
+  delay(500);
+  display.clearDisplay();
+  display.display();
+  delay(100);
+  light=0;
+  leds[0] = CRGB(0, 0, 0);
+  FastLED.show();
+  esp_deep_sleep_start();     
+}
+
 void screen(){
  while(1){
-  currentMillis = millis();
-  dif = currentMillis - previousMillis;
-  Serial.println(dif);
+  
+  enable_sleep();
+  //Serial.println(dif);
   if((!digitalRead(BUTTON_A))||(!digitalRead(BUTTON_C))){
     Serial.println("b pressed");
     previousMillis = currentMillis;
-    Serial.println(previousMillis);
+    //Serial.println(previousMillis);
     displayMenu();
     }
  
@@ -284,77 +413,127 @@ void screen(){
   if(digitalRead(GPIO_NUM_12)) {
     lightOnOff();
     previousMillis = currentMillis;
-    Serial.println(previousMillis);
+    //Serial.println(previousMillis);
   }
-  /*if (digitalRead(GPIO_NUM_12)){
-    previousMillis = currentMillis;
-  }*/
+
   
   yield();
   display.display();
-  if (dif>5000){
-    Serial.println("sleep");
-    display.clearDisplay();
-    display.display();
-    delay(100);
-    break;
-  }
+  
  }
-  sleepNow(); // deepsleep after while 1, as to prevent that erros break the loop
+  
 }
 
 void led(){
-  while(1){
-    currentMillis = millis();
-    dif = currentMillis - previousMillis;
-     // read the value from the sensor:
-    sensorValue = analogRead(sensorPin);
-    if (abs(sensorValue - previousSensorValue) >= 30) previousMillis = currentMillis;
-    Serial.println(sensorValue);
-    // turn the ledPin on
-    digitalWrite(ledPin, HIGH);
-    // stop the program for <sensorValue> milliseconds:
+  if (light){
+    light=0;
+    leds[0] = CRGB(0, 0, 0);
+    FastLED.clear();
+    delay(50);
+    FastLED.show();
+    display.clearDisplay();
+    display.display();
+    display.setCursor(0,0);
+    display.println("ligth turned off");
+    display.display();
     delay(500);
-    // turn the ledPin off:
-    digitalWrite(ledPin, LOW);
-    // stop the program for for <sensorValue> milliseconds:
-    delay(500);
-    if (sensorValue < 1365){
-      leds[0] = CRGB(0, 255, 0);
-      FastLED.show();
-      Serial.println("green");
+    display.print("go back to menu");
+    display.display();
+    delay(100);
+    display.print(".");
+    display.display();
+    delay(100);
+    display.print(".");
+    display.display();
+    delay(100);
+    display.print(".");
+    display.display();
+    delay(100);
+    displayMenu();
+  }
+  else{
+    
+    light=1;
+    delay(100);
+    display.clearDisplay();
+    display.display();
+    display.setCursor(0,0);
+    display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+    display.setCursor(1,1);
+    display.println("Press ok to go back");
+    display.println("Toogle light");
+    display.println("Use the potentiometer to change the color");
+    display.display();
+    while(1){
+      //says that light is on
+      enable_sleep();
+       // read the value from the sensor:
+      sensorValue = analogRead(sensorPin);
+      if (abs(sensorValue - previousSensorValue) >= 100) previousMillis = currentMillis;
+      Serial.println(sensorValue);
+      // turn the ledPin on
+      digitalWrite(ledPin, HIGH);
+      // stop the program for <sensorValue> milliseconds:
+      delay(100);
+      back();
+      // turn the ledPin off:
+      digitalWrite(ledPin, LOW);
+      // stop the program for for <sensorValue> milliseconds:
+      delay(100);
+      back();
+      if (sensorValue < 1365){
+        leds[0] = CRGB(0, 255, 0);
+        FastLED.show();
+        Serial.println("green");
+      }
+      else if ((sensorValue >= 1365) && (sensorValue < 2730)){
+        leds[0] = CRGB(0, 0, 255);
+        FastLED.show();
+        Serial.println("blue");
+      }
+      else{
+        leds[0] = CRGB(255, 0, 0);
+        FastLED.show();
+        Serial.println("red");
+      }
+      previousSensorValue = sensorValue;
+      back();
     }
-    else if ((sensorValue >= 1365) && (sensorValue < 2730)){
-      leds[0] = CRGB(0, 0, 255);
-      FastLED.show();
-      Serial.println("blue");
-    }
-    else{
-      leds[0] = CRGB(255, 0, 0);
-      FastLED.show();
-      Serial.println("red");
-    }
-    previousSensorValue = sensorValue;
-    if (dif>5000){
+  }
+}
+
+void enable_sleep(){
+  currentMillis = millis();
+  dif = currentMillis - previousMillis;
+  Serial.println(dif);
+   if (dif>5000){
       Serial.println("sleep");
       display.clearDisplay();
       display.display();
       delay(100);
-      sleepNow();
+      light=0;
+      leds[0] = CRGB(0, 0, 0);
+      FastLED.clear();
+      delay(50);
+      FastLED.show();
+      esp_deep_sleep_start();
     }
-    if(!digitalRead(BUTTON_C)) {
-    previousMillis = currentMillis;
-    break;
+}
+
+void back(){
+  if(!digitalRead(GPIO_NUM_25)) {
+      previousMillis = currentMillis;
+      delay(250);
+      displayMenu();
     }
-  }
-  screen(); // deepsleep after while 1, as to prevent that erros break the loop
 }
 
 void loop() {
-  Serial.print("Milliseconds since ignition: "); // used for debugging
-  Serial.println(millis());
-  delay(200);
+  //Serial.print("Milliseconds since ignition: "); // used for debugging
+  //Serial.println(millis());
+  //delay(200);
   //put code here
+  //Serial.println(digitalRead(GPIO_NUM_25));
   screen();
   
   
